@@ -5,13 +5,21 @@ enablePlugins(IzumiDslPlugin)
 
 // -- build settings, root artifact settings, etc
 name := "izumi-r2-test"
-crossScalaVersions in ThisBuild := Seq(
-  "2.12.4"
-  , "2.11.12"
-)
+
+
+
+val legacyScalaVersions = Seq("2.11.12")
+val newScalaVersions = Seq("2.11.12")
+val allScalaVersions = legacyScalaVersions ++ newScalaVersions
+val allScala = Seq(crossScalaVersions := allScalaVersions)
+val legacyScala = Seq(crossScalaVersions := legacyScalaVersions)
+val newScala = Seq(crossScalaVersions := newScalaVersions)
+
+//crossScalaVersions in ThisBuild := allScalaVersions
+
 
 // unfortunately we have to use this bcs conditional settings in plugins don't work
-scalacOptions in ThisBuild ++= CompilerOptionsPlugin.dynamicSettings(scalaVersion.value, isSnapshot.value)
+//scalacOptions in ThisBuild ++= CompilerOptionsPlugin.dynamicSettings(scalaVersion.value, isSnapshot.value)
 
 // -- settings groups identifiers
 val AppSettings = SettingsGroupId()
@@ -45,24 +53,32 @@ val inLib = In("lib")
 val inApp = In("app")
 
 // -- shared definitions (will be added into each project extened with Izumi
-lazy val sharedLib = inLib.as.module
-lazy val testOnlySharedLib = inLib.as.module
+lazy val sharedLib = inLib.as.module.settings(allScala :_*)
+lazy val testOnlySharedLib = inLib.as.module.settings(allScala :_*)
 
 // this library definition is not being processed by Izumi
-lazy val `non-izumi-shared-lib` = project in file("lib/non-izumi-shared-lib")
+lazy val `non-izumi-shared-lib` = (project in file("lib/non-izumi-shared-lib"))
+  .settings(allScala :_*)
 
 val sharedDefs = globalDefs.withSharedLibs(
-  sharedLib.defaultRef            // default sbt reference, without test scope inheritance
-  , `non-izumi-shared-lib`        // test scope inheritance will be applied here
+  sharedLib.defaultRef // default sbt reference, without test scope inheritance
+  , `non-izumi-shared-lib` // test scope inheritance will be applied here
   , testOnlySharedLib.testOnlyRef // this library will be available in all the test scopes
 )
 
 // the rest
-lazy val justLib = inLib.as.module
+lazy val justLib = inLib.as.module.settings(newScala :_*)
 
-lazy val justApp = inApp.as.module
+lazy val justApp: Project = inApp.as.module
   .depends(justLib)
   .settings(AppSettings)
+  .settings(newScala :_*)
+
+lazy val legacyLib = inLib.as.module.settings(legacyScala :_*)
+
+lazy val legacyApp: Project = inApp.as.module
+  .settings(AppSettings)
+  .settings(legacyScala :_*)
 
 lazy val root = inRoot.as.root
   .transitiveAggregate(
