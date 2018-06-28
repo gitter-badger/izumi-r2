@@ -543,5 +543,9 @@ Forest fire, climbin' higher, real life, it can wait""")
     abstract class TestProvider1[A, G[_]: Pointed, F[_]: Pointed] {
       def f(a: A): F[A]
     }
+
+    abstract class TestProvider2[A, B, C, F[_]: Pointed] {
+      def f(a: A): F[A]
+    }
   }
 }
